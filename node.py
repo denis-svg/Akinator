@@ -2,6 +2,7 @@ from rules_example_zookeeper import ZOOKEEPER_RULES, TOURIST_RULES
 from  graphviz import Digraph
 from random import choice
 from icecream import ic
+import language_tool_python
 
 class Node:
     def __init__(self, value, parents=None, or_set=None) -> None:
@@ -23,6 +24,7 @@ class GoalTree:
     def __init__(self, rules) -> None:
         self.nodes = {}
         self.construct(rules)
+        self.tool = language_tool_python.LanguageTool('en-US') 
 
     def visualize_tree(self, output_filename="goal_tree"):
         """
@@ -252,9 +254,14 @@ class GoalTree:
             else:
                 possible_rules.add(node)
 
+        def correct_grammar(text):
+            matches = self.tool.check(text)
+            corrected_text = language_tool_python.utils.correct(text, matches)
+            return corrected_text
+
         def ask_fact_question(fact):
             """Ask a yes/no question about a fact."""
-            answer = input(f"Does it {fact}? (yes/no): ").strip().lower()
+            answer = input(correct_grammar(f"Does it {fact}?") + " (yes/no): ").strip().lower()
             return answer == "yes"
 
         def ask_mutually_exclusive_question(mutually_exclusive_set):
