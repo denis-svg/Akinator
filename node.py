@@ -3,6 +3,7 @@ from  graphviz import Digraph
 from random import choice
 from icecream import ic
 import language_tool_python
+import random
 
 class Node:
     def __init__(self, value, parents=None, or_set=None) -> None:
@@ -239,7 +240,7 @@ class GoalTree:
                         print("or")
                         print("-", end="")
 
-    def akinator(self, mutually_exclusive):
+    def akinator(self, mutually_exclusive, questions):
         known_facts = set()
         possible_hypotheses = set()
         possible_facts = set()
@@ -263,6 +264,25 @@ class GoalTree:
             """Ask a yes/no question about a fact."""
             answer = input(correct_grammar(f"Does it {fact}?") + " (yes/no): ").strip().lower()
             return answer == "yes"
+        
+        def ask_rating_question(question):
+            """Ask the user to rate a given question on a scale of 1 to 5."""
+            single_key = next(iter(question))
+            print(single_key)  # Display the question to the user
+            rating = None
+            ratings = set()
+            for i in range(1, len(question[single_key]) + 1):
+                ratings.add(i)
+
+            while rating not in ratings:
+                try:
+                    rating = int(input(f"Please rate 1-{len(question[single_key])}: ").strip())
+                    if rating not in ratings:
+                        print("Invalid input. Please enter a number between 1 and 5.")
+                except ValueError:
+                    print("Invalid input. Please enter a number between 1 and 5.")
+
+            return rating
 
         def ask_mutually_exclusive_question(mutually_exclusive_set):
             """Ask the user to choose which fact from a mutually exclusive set is true."""
@@ -371,6 +391,18 @@ class GoalTree:
             ic(possible_facts)
 
         def choose_question():
+            if random.random() < 0.3:
+                if questions:
+                    question = questions.pop()
+                    rating = str(ask_rating_question(question))
+                    facts = question[next(iter(question))][rating]
+                    for fact in facts:
+                        if not fact in possible_facts:
+                            continue
+                        asked_facts.add(fact)
+                        known_facts.add(fact)
+                    return
+                    
             fact = choice(list(possible_facts))
             ic(mutually_exclusive)
 
@@ -424,6 +456,7 @@ class GoalTree:
 
 if __name__ == "__main__":
     ic.disable()
+    tree = GoalTree(rules=TOURIST_RULES)
     while True:
         print("Options:\n1)Backchain\n2)Akinator\n3)Exit")
         option = int(input())
@@ -431,10 +464,18 @@ if __name__ == "__main__":
             break
         if option == 1:
             hypothesis = input("Give a valid hypothesis:")
-            GoalTree(rules=TOURIST_RULES).backward_chain(hypothesis)
+            tree.backward_chain(hypothesis)
         else:
-            GoalTree(rules=TOURIST_RULES).akinator(mutually_exclusive=[{'wears bright flashy clothing', 'wears muted, utilitarian clothing'},
+            tree.akinator(mutually_exclusive=[{'wears bright flashy clothing', 'wears muted, utilitarian clothing'},
                                                                     {'frequently checks for directions', 'uses tech to navigate efficiently'},
                                                                     {'asks basic questions about lunar history', 'asks in-depth technical questions'},
-                                                                    {'wears business attire', 'wears adventure-themed clothing'},
-                                                                    {'records videos constantly', 'talks nostalgically about earth'}])
+                                                                    {'wears business attire', 'wears adventure-themed clothing', 'wears stylish outfits', 'wears muted, utilitarian clothing'},
+                                                                    {'records videos constantly', 'talks nostalgically about earth'}],
+                                                                    questions=[
+                                                                        {"How familiar are they with lunar transportation?":{
+                                                                        "1": {"walks slowly", "frequently checks a device", "frequently checks for directions"},
+                                                                        "2": {"frequently checks a device", "frequently checks for directions"},
+                                                                        "3": {"frequently checks a device"},
+                                                                        "4": {"avoids hazards in lunar gravity"},
+                                                                        "5": {"uses tech to navigate efficiently", "avoids hazards in lunar gravity"}
+                                                                    }}])
